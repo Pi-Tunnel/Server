@@ -592,8 +592,10 @@ EOF"
 run_with_spinner "Enabling service" "systemctl daemon-reload && systemctl enable pitunnel"
 run_with_spinner "Starting PiTunnel Server" "systemctl stop pitunnel 2>/dev/null || true; systemctl start pitunnel"
 
-# Create global symlink for ptserver
-run_with_spinner "Creating ptserver CLI" "ln -sf $INSTALL_DIR/server/index.js /usr/local/bin/ptserver && chmod +x /usr/local/bin/ptserver"
+# Create ptserver CLI wrapper
+run_with_spinner "Creating ptserver CLI" "echo '#!/bin/bash
+cd /opt/pitunnel/server
+exec /usr/bin/node index.js \"\$@\"' > /usr/local/bin/ptserver && chmod +x /usr/local/bin/ptserver"
 
 sleep 0.3
 
