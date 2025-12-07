@@ -6,6 +6,9 @@
 
 set -e
 
+# Fix for pipe execution - read from terminal
+exec < /dev/tty
+
 # Version
 VERSION="1.0.0"
 REPO_URL="https://github.com/Pi-Tunnel/Server"
