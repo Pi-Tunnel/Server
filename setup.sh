@@ -592,10 +592,181 @@ EOF"
 run_with_spinner "Enabling service" "systemctl daemon-reload && systemctl enable pitunnel"
 run_with_spinner "Starting PiTunnel Server" "systemctl stop pitunnel 2>/dev/null || true; systemctl start pitunnel"
 
-# Create ptserver CLI wrapper
-run_with_spinner "Creating ptserver CLI" "echo '#!/bin/bash
-cd /opt/pitunnel/server
-exec /usr/bin/node index.js \"\$@\"' > /usr/local/bin/ptserver && chmod +x /usr/local/bin/ptserver"
+# Create piserver CLI
+run_with_spinner "Creating piserver CLI" "cat > /usr/local/bin/piserver << 'EOFCLI'
+#!/bin/bash
+
+# PiTunnel Server CLI
+# Usage: piserver [start|stop|restart|status|logs|config|token]
+
+SERVICE=\"pitunnel\"
+CONFIG_FILE=\"/etc/pitunnel/config.json\"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+DIM='\033[2m'
+NC='\033[0m'
+
+show_help() {
+    echo \"\"
+    echo -e \"\${CYAN}╔═══════════════════════════════════════╗\${NC}\"
+    echo -e \"\${CYAN}║\${NC}       \${BOLD}PiTunnel Server CLI\${NC}            \${CYAN}║\${NC}\"
+    echo -e \"\${CYAN}╚═══════════════════════════════════════╝\${NC}\"
+    echo \"\"
+    echo -e \"  \${BOLD}Usage:\${NC} piserver <command>\"
+    echo \"\"
+    echo -e \"  \${BOLD}Commands:\${NC}\"
+    echo -e \"    \${GREEN}start\${NC}      Start PiTunnel Server\"
+    echo -e \"    \${GREEN}stop\${NC}       Stop PiTunnel Server\"
+    echo -e \"    \${GREEN}restart\${NC}    Restart PiTunnel Server\"
+    echo -e \"    \${GREEN}status\${NC}     Show server status\"
+    echo -e \"    \${GREEN}logs\${NC}       View server logs (live)\"
+    echo -e \"    \${GREEN}config\${NC}     Show configuration\"
+    echo -e \"    \${GREEN}token\${NC}      Show auth token\"
+    echo -e \"    \${GREEN}help\${NC}       Show this help message\"
+    echo \"\"
+}
+
+cmd_start() {
+    echo \"\"
+    echo -e \"  \${CYAN}→\${NC} Starting PiTunnel Server...\"
+    if systemctl start \$SERVICE 2>/dev/null; then
+        sleep 1
+        if systemctl is-active --quiet \$SERVICE; then
+            echo -e \"  \${GREEN}✓\${NC} PiTunnel Server started\"
+        else
+            echo -e \"  \${RED}✗\${NC} Failed to start\"
+            echo -e \"    Run \${CYAN}piserver logs\${NC} to see errors\"
+        fi
+    else
+        echo -e \"  \${RED}✗\${NC} Failed to start PiTunnel Server\"
+    fi
+    echo \"\"
+}
+
+cmd_stop() {
+    echo \"\"
+    echo -e \"  \${CYAN}→\${NC} Stopping PiTunnel Server...\"
+    if systemctl stop \$SERVICE 2>/dev/null; then
+        echo -e \"  \${GREEN}✓\${NC} PiTunnel Server stopped\"
+    else
+        echo -e \"  \${YELLOW}!\${NC} PiTunnel Server may not be running\"
+    fi
+    echo \"\"
+}
+
+cmd_restart() {
+    echo \"\"
+    echo -e \"  \${CYAN}→\${NC} Restarting PiTunnel Server...\"
+    if systemctl restart \$SERVICE 2>/dev/null; then
+        sleep 1
+        if systemctl is-active --quiet \$SERVICE; then
+            echo -e \"  \${GREEN}✓\${NC} PiTunnel Server restarted\"
+        else
+            echo -e \"  \${RED}✗\${NC} Failed to restart\"
+            echo -e \"    Run \${CYAN}piserver logs\${NC} to see errors\"
+        fi
+    else
+        echo -e \"  \${RED}✗\${NC} Failed to restart PiTunnel Server\"
+    fi
+    echo \"\"
+}
+
+cmd_status() {
+    echo \"\"
+    echo -e \"  \${BOLD}PiTunnel Server Status\${NC}\"
+    echo -e \"  \${DIM}────────────────────────────────────────\${NC}\"
+
+    if systemctl is-active --quiet \$SERVICE; then
+        local pid=\$(systemctl show \$SERVICE --property=MainPID --value 2>/dev/null)
+        echo -e \"  Status:    \${GREEN}● Running\${NC}\"
+        [ -n \"\$pid\" ] && [ \"\$pid\" != \"0\" ] && echo -e \"  PID:       \$pid\"
+    else
+        echo -e \"  Status:    \${RED}● Stopped\${NC}\"
+    fi
+
+    if systemctl is-enabled --quiet \$SERVICE 2>/dev/null; then
+        echo -e \"  Autostart: \${GREEN}Enabled\${NC}\"
+    else
+        echo -e \"  Autostart: \${RED}Disabled\${NC}\"
+    fi
+
+    if [ -f \"\$CONFIG_FILE\" ]; then
+        local domain=\$(grep -oP '\"domain\"\\s*:\\s*\"\\K[^\"]+' \"\$CONFIG_FILE\" 2>/dev/null)
+        local http_port=\$(grep -oP '\"httpPort\"\\s*:\\s*\\K[0-9]+' \"\$CONFIG_FILE\" 2>/dev/null)
+        local ws_port=\$(grep -oP '\"wsPort\"\\s*:\\s*\\K[0-9]+' \"\$CONFIG_FILE\" 2>/dev/null)
+        local api_port=\$(grep -oP '\"apiPort\"\\s*:\\s*\\K[0-9]+' \"\$CONFIG_FILE\" 2>/dev/null)
+
+        echo \"\"
+        echo -e \"  \${BOLD}Configuration\${NC}\"
+        echo -e \"  \${DIM}────────────────────────────────────────\${NC}\"
+        [ -n \"\$domain\" ] && echo -e \"  Domain:    \${CYAN}*.\$domain\${NC}\"
+        [ -n \"\$http_port\" ] && echo -e \"  HTTP:      Port \$http_port\"
+        [ -n \"\$ws_port\" ] && echo -e \"  WebSocket: Port \$ws_port\"
+        [ -n \"\$api_port\" ] && echo -e \"  API:       Port \$api_port\"
+    fi
+    echo \"\"
+}
+
+cmd_logs() {
+    echo \"\"
+    echo -e \"  \${CYAN}→\${NC} Showing live logs (Ctrl+C to exit)...\"
+    echo \"\"
+    journalctl -u \$SERVICE -f --no-hostname -o cat
+}
+
+cmd_config() {
+    echo \"\"
+    echo -e \"  \${BOLD}PiTunnel Server Configuration\${NC}\"
+    echo -e \"  \${DIM}────────────────────────────────────────\${NC}\"
+    if [ -f \"\$CONFIG_FILE\" ]; then
+        cat \"\$CONFIG_FILE\" | while IFS= read -r line; do
+            echo \"  \$line\"
+        done
+    else
+        echo -e \"  \${RED}Config file not found\${NC}\"
+    fi
+    echo \"\"
+}
+
+cmd_token() {
+    echo \"\"
+    if [ -f \"\$CONFIG_FILE\" ]; then
+        local token=\$(grep -oP '\"authToken\"\\s*:\\s*\"\\K[^\"]+' \"\$CONFIG_FILE\" 2>/dev/null)
+        if [ -n \"\$token\" ]; then
+            echo -e \"  \${BOLD}Auth Token:\${NC}\"
+            echo -e \"  \${YELLOW}\$token\${NC}\"
+        else
+            echo -e \"  \${RED}Token not found in config\${NC}\"
+        fi
+    else
+        echo -e \"  \${RED}Config file not found\${NC}\"
+    fi
+    echo \"\"
+}
+
+case \"\$1\" in
+    start)      cmd_start ;;
+    stop)       cmd_stop ;;
+    restart)    cmd_restart ;;
+    status)     cmd_status ;;
+    logs|log)   cmd_logs ;;
+    config)     cmd_config ;;
+    token)      cmd_token ;;
+    help|--help|-h|\"\") show_help ;;
+    *)
+        echo \"\"
+        echo -e \"  \${RED}Unknown command: \$1\${NC}\"
+        show_help
+        exit 1
+        ;;
+esac
+EOFCLI
+chmod +x /usr/local/bin/piserver"
 
 sleep 0.3
 
@@ -700,18 +871,18 @@ echo -e "  ${BOLD}Start a tunnel:${NC}"
 echo -e "  ${GREEN}ptclient start${NC}"
 echo ""
 
-# Useful Commands
+# Server Commands
 echo -e "${CYAN}┌───────────────────────────────────────────────────────────┐${NC}"
 echo -e "${CYAN}│${NC}${BOLD}                   Server Commands${NC}                         ${CYAN}│${NC}"
 echo -e "${CYAN}└───────────────────────────────────────────────────────────┘${NC}"
 echo ""
-echo -e "  ${GREEN}ptserver start${NC}     Start PiTunnel Server"
-echo -e "  ${GREEN}ptserver stop${NC}      Stop PiTunnel Server"
-echo -e "  ${GREEN}ptserver status${NC}    Show server status"
-echo -e "  ${GREEN}ptserver install${NC}   Install as system service"
-echo -e "  ${GREEN}ptserver uninstall${NC} Remove system service"
-echo ""
-echo -e "  ${DIM}View logs:${NC}         ${GREEN}journalctl -u pitunnel -f${NC}"
+echo -e "  ${GREEN}piserver start${NC}     Start PiTunnel Server"
+echo -e "  ${GREEN}piserver stop${NC}      Stop PiTunnel Server"
+echo -e "  ${GREEN}piserver restart${NC}   Restart PiTunnel Server"
+echo -e "  ${GREEN}piserver status${NC}    Show server status"
+echo -e "  ${GREEN}piserver logs${NC}      View live logs"
+echo -e "  ${GREEN}piserver config${NC}    Show configuration"
+echo -e "  ${GREEN}piserver token${NC}     Show auth token"
 echo ""
 
 echo -e "  ${MAGENTA}GitHub: $REPO_URL${NC}"

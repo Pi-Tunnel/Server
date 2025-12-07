@@ -1,4 +1,4 @@
-# PiTunnel Server (ptserver)
+# PiTunnel Server
 
 PiTunnel server is a tunnel server that exposes services on your local network to the internet.
 
@@ -25,17 +25,59 @@ This will:
 - Set up systemd service (auto-start on boot)
 - Configure firewall rules
 - Generate authentication token
+- Create `piserver` CLI command
 
-## Manual Installation
+## Server Commands
+
+After installation, use the `piserver` command to manage the server:
+
+| Command | Description |
+|---------|-------------|
+| `piserver start` | Start PiTunnel Server |
+| `piserver stop` | Stop PiTunnel Server |
+| `piserver restart` | Restart PiTunnel Server |
+| `piserver status` | Show server status |
+| `piserver logs` | View live logs |
+| `piserver config` | Show configuration |
+| `piserver token` | Show auth token |
+| `piserver help` | Show help message |
+
+### Example Usage
 
 ```bash
-# Install globally from npm
-npm install -g ptserver
+# Check server status
+piserver status
+
+# View live logs
+piserver logs
+
+# Restart server
+piserver restart
+
+# Show auth token
+piserver token
+```
+
+### Example Status Output
+
+```
+  PiTunnel Server Status
+  ────────────────────────────────────────
+  Status:    ● Running
+  PID:       12345
+  Autostart: Enabled
+
+  Configuration
+  ────────────────────────────────────────
+  Domain:    *.tunnel.example.com
+  HTTP:      Port 80
+  WebSocket: Port 8081
+  API:       Port 8082
 ```
 
 ## Configuration
 
-Create a `config.json` file:
+Configuration file: `/etc/pitunnel/config.json`
 
 ```json
 {
@@ -56,94 +98,6 @@ Create a `config.json` file:
 | `wsPort` | 8081 | Port for WebSocket connections |
 | `apiPort` | 8082 | Port for API endpoints |
 | `authToken` | null | Client authentication token |
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `ptserver` | Start server in foreground |
-| `ptserver start` | Start server as service |
-| `ptserver stop` | Stop server service |
-| `ptserver status` | Show service status |
-| `ptserver install` | Install as system service |
-| `ptserver uninstall` | Remove system service |
-
-## Running
-
-```bash
-# Run in foreground
-ptserver
-
-# Or start as background service
-ptserver start
-```
-
-### Service Management
-
-```bash
-# Start service
-sudo ptserver start
-
-# Stop service
-sudo ptserver stop
-
-# Check status
-ptserver status
-```
-
-Example status output:
-```
-📊 PiTunnel Server Status
-────────────────────────────────────────
-Service:  pitunnel-server.service
-Status:   🟢 Running (PID: 12345)
-Platform: Linux (systemd)
-Enabled:  ✅ Yes
-```
-
-### Install as System Service
-
-Install PiTunnel Server to run automatically on system boot:
-
-```bash
-# Linux (requires sudo)
-sudo ptserver install
-
-# macOS (requires sudo)
-sudo ptserver install
-
-# Windows (run as Administrator)
-ptserver install
-```
-
-### Uninstall System Service
-
-```bash
-# Linux
-sudo ptserver uninstall
-
-# macOS
-sudo ptserver uninstall
-
-# Windows (run as Administrator)
-ptserver uninstall
-```
-
-### Platform Support
-
-| Platform | Method | Service Name |
-|----------|--------|--------------|
-| Linux | systemd | pitunnel-server.service |
-| macOS | LaunchDaemon | com.pitunnel.server |
-| Windows | Task Scheduler | PiTunnelServer |
-
-### Running with PM2 (alternative)
-
-```bash
-pm2 start $(which ptserver) --name pitunnel
-pm2 save
-pm2 startup
-```
 
 ## Dynamic Port System
 
