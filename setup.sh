@@ -592,6 +592,9 @@ EOF"
 run_with_spinner "Enabling service" "systemctl daemon-reload && systemctl enable pitunnel"
 run_with_spinner "Starting PiTunnel Server" "systemctl stop pitunnel 2>/dev/null || true; systemctl start pitunnel"
 
+# Create global symlink for ptserver
+run_with_spinner "Creating ptserver CLI" "ln -sf $INSTALL_DIR/server/index.js /usr/local/bin/ptserver && chmod +x /usr/local/bin/ptserver"
+
 sleep 0.3
 
 # ==================== Firewall ====================
@@ -697,14 +700,16 @@ echo ""
 
 # Useful Commands
 echo -e "${CYAN}┌───────────────────────────────────────────────────────────┐${NC}"
-echo -e "${CYAN}│${NC}${BOLD}                   Useful Commands${NC}                         ${CYAN}│${NC}"
+echo -e "${CYAN}│${NC}${BOLD}                   Server Commands${NC}                         ${CYAN}│${NC}"
 echo -e "${CYAN}└───────────────────────────────────────────────────────────┘${NC}"
 echo ""
-echo -e "  ${DIM}View logs:${NC}        ${GREEN}journalctl -u pitunnel -f${NC}"
-echo -e "  ${DIM}Service status:${NC}   ${GREEN}systemctl status pitunnel${NC}"
-echo -e "  ${DIM}Restart server:${NC}   ${GREEN}systemctl restart pitunnel${NC}"
-echo -e "  ${DIM}View config:${NC}      ${GREEN}cat $CONFIG_DIR/config.json${NC}"
-echo -e "  ${DIM}View token:${NC}       ${GREEN}cat $CONFIG_DIR/config.json | grep authToken${NC}"
+echo -e "  ${GREEN}ptserver start${NC}     Start PiTunnel Server"
+echo -e "  ${GREEN}ptserver stop${NC}      Stop PiTunnel Server"
+echo -e "  ${GREEN}ptserver status${NC}    Show server status"
+echo -e "  ${GREEN}ptserver install${NC}   Install as system service"
+echo -e "  ${GREEN}ptserver uninstall${NC} Remove system service"
+echo ""
+echo -e "  ${DIM}View logs:${NC}         ${GREEN}journalctl -u pitunnel -f${NC}"
 echo ""
 
 echo -e "  ${MAGENTA}GitHub: $REPO_URL${NC}"
