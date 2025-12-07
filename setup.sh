@@ -6,9 +6,6 @@
 
 set -e
 
-# Fix for pipe execution - read from terminal
-exec < /dev/tty
-
 # Version
 VERSION="1.0.0"
 REPO_URL="https://github.com/Pi-Tunnel/Server"
@@ -250,10 +247,12 @@ echo ""
 
 # Server IP
 if [ -n "$AUTO_IP" ]; then
-    read -p "Server IP [$AUTO_IP]: " SERVER_IP
+    echo -n "Server IP [$AUTO_IP]: "
+    read SERVER_IP < /dev/tty
     SERVER_IP=${SERVER_IP:-$AUTO_IP}
 else
-    read -p "Server IP: " SERVER_IP
+    echo -n "Server IP: "
+    read SERVER_IP < /dev/tty
 fi
 
 # Validate IP
@@ -267,7 +266,8 @@ echo ""
 echo -e "${YELLOW}Domain format: tunnel.yourdomain.com${NC}"
 echo -e "${YELLOW}Tunnels will be: *.tunnel.yourdomain.com${NC}"
 echo ""
-read -p "Domain: " DOMAIN
+echo -n "Domain: "
+read DOMAIN < /dev/tty
 
 if [ -z "$DOMAIN" ]; then
     log_error "Domain cannot be empty"
@@ -276,13 +276,16 @@ fi
 
 # Ports (with defaults)
 echo ""
-read -p "HTTP Port [80]: " HTTP_PORT
+echo -n "HTTP Port [80]: "
+read HTTP_PORT < /dev/tty
 HTTP_PORT=${HTTP_PORT:-80}
 
-read -p "WebSocket Port [8081]: " WS_PORT
+echo -n "WebSocket Port [8081]: "
+read WS_PORT < /dev/tty
 WS_PORT=${WS_PORT:-8081}
 
-read -p "API Port [8082]: " API_PORT
+echo -n "API Port [8082]: "
+read API_PORT < /dev/tty
 API_PORT=${API_PORT:-8082}
 
 # Generate Token
@@ -300,7 +303,8 @@ echo -e "  WebSocket Port: ${GREEN}$WS_PORT${NC}"
 echo -e "  API Port:       ${GREEN}$API_PORT${NC}"
 echo -e "  Install Dir:    ${GREEN}$INSTALL_DIR${NC}"
 echo ""
-read -p "Continue with installation? [Y/n]: " CONFIRM
+echo -n "Continue with installation? [Y/n]: "
+read CONFIRM < /dev/tty
 CONFIRM=${CONFIRM:-Y}
 
 if [[ "$CONFIRM" =~ ^[Nn]$ ]]; then
