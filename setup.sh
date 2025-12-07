@@ -860,15 +860,15 @@ echo -e "${CYAN}│${NC}${BOLD}                    Client Setup${NC}            
 echo -e "${CYAN}└───────────────────────────────────────────────────────────┘${NC}"
 echo ""
 echo -e "  ${BOLD}Install client:${NC}"
-echo -e "  ${GREEN}npm install -g ptclient${NC}"
+echo -e "  ${GREEN}npm install -g piclient${NC}"
 echo ""
 echo -e "  ${BOLD}Login to server:${NC}"
-echo -e "  ${GREEN}ptclient login${NC}"
+echo -e "  ${GREEN}piclient login${NC}"
 echo -e "  ${DIM}Server:${NC} ${CYAN}$SERVER_IP${NC}"
 echo -e "  ${DIM}Token:${NC}  ${CYAN}$AUTH_TOKEN${NC}"
 echo ""
 echo -e "  ${BOLD}Start a tunnel:${NC}"
-echo -e "  ${GREEN}ptclient start${NC}"
+echo -e "  ${GREEN}piclient start${NC}"
 echo ""
 
 # Server Commands

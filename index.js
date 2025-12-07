@@ -69,110 +69,24 @@ function loadPageTemplates() {
 }
 
 function getErrorPage(tunnelName, host) {
-  if (inactivePageTemplate) {
-    return inactivePageTemplate
-      .replace(/\{\{TUNNEL_NAME\}\}/g, tunnelName)
-      .replace(/\{\{HOST\}\}/g, host)
-      .replace(/\{\{TIMESTAMP\}\}/g, new Date().toISOString());
+  if (!inactivePageTemplate) {
+    return `<html><body><h1>502 - Tunnel Offline</h1><p>Tunnel ${tunnelName} is not connected.</p></body></html>`;
   }
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tunnel Offline - PiTunnel</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-        }
-        .container { text-align: center; padding: 40px; max-width: 600px; }
-        .error-code { font-size: 72px; font-weight: 800; color: #e94560; margin-bottom: 10px; text-shadow: 0 0 30px rgba(233, 69, 96, 0.5); }
-        .error-title { font-size: 24px; font-weight: 600; margin-bottom: 20px; color: #fff; }
-        .tunnel-name { display: inline-block; background: rgba(233, 69, 96, 0.2); border: 1px solid #e94560; padding: 8px 16px; border-radius: 6px; font-family: 'Monaco', 'Consolas', monospace; font-size: 14px; color: #e94560; margin-bottom: 30px; }
-        .error-message { font-size: 16px; color: #a0a0a0; line-height: 1.6; margin-bottom: 30px; }
-        .status-box { background: rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 20px; margin-bottom: 30px; }
-        .status-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-        .status-row:last-child { border-bottom: none; }
-        .status-label { color: #a0a0a0; font-size: 14px; }
-        .status-value { font-weight: 600; font-size: 14px; }
-        .status-value.online { color: #4ade80; }
-        .status-value.offline { color: #e94560; }
-        .retry-btn { display: inline-block; background: linear-gradient(135deg, #e94560 0%, #c23152 100%); color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; transition: all 0.3s ease; border: none; cursor: pointer; }
-        .retry-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(233, 69, 96, 0.4); }
-        .footer { margin-top: 40px; color: #666; font-size: 12px; }
-        .footer a { color: #e94560; text-decoration: none; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="error-code">502</div>
-        <h1 class="error-title">Tunnel Offline</h1>
-        <div class="tunnel-name">${host}</div>
-        <p class="error-message">The tunnel <strong>${tunnelName}</strong> is currently not connected to the PiTunnel network. This could mean the client device is offline or hasn't established a connection yet.</p>
-        <div class="status-box">
-            <div class="status-row"><span class="status-label">PiTunnel Edge</span><span class="status-value online">Connected</span></div>
-            <div class="status-row"><span class="status-label">Tunnel: ${tunnelName}</span><span class="status-value offline">Offline</span></div>
-            <div class="status-row"><span class="status-label">Origin Server</span><span class="status-value offline">Unreachable</span></div>
-        </div>
-        <button class="retry-btn" onclick="location.reload()">Try Again</button>
-        <div class="footer">Powered by <a href="#">PiTunnel</a> &bull; ${new Date().toISOString()}</div>
-    </div>
-</body>
-</html>`;
+  return inactivePageTemplate
+    .replace(/\{\{TUNNEL_NAME\}\}/g, tunnelName)
+    .replace(/\{\{HOST\}\}/g, host)
+    .replace(/\{\{TIMESTAMP\}\}/g, new Date().toISOString());
 }
 
-// Tunnel error page (bağlantı hatası)
 function getTunnelErrorPage(tunnelName, host, errorMessage) {
-  if (errorPageTemplate) {
-    return errorPageTemplate
-      .replace(/\{\{TUNNEL_NAME\}\}/g, tunnelName)
-      .replace(/\{\{HOST\}\}/g, host)
-      .replace(/\{\{ERROR_MESSAGE\}\}/g, errorMessage);
+  if (!errorPageTemplate) {
+    return `<html><body><h1>503 - Connection Error</h1><p>${errorMessage}</p></body></html>`;
   }
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connection Error - PiTunnel</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-        }
-        .container { text-align: center; padding: 40px; max-width: 600px; }
-        .error-code { font-size: 72px; font-weight: 800; color: #f59e0b; margin-bottom: 10px; }
-        .error-title { font-size: 24px; margin-bottom: 20px; }
-        .error-message { color: #a0a0a0; margin-bottom: 20px; }
-        .error-detail { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 14px; color: #f59e0b; }
-        .retry-btn { display: inline-block; background: #f59e0b; color: #000; padding: 14px 32px; border-radius: 8px; font-weight: 600; border: none; cursor: pointer; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="error-code">503</div>
-        <h1 class="error-title">Origin Connection Failed</h1>
-        <p class="error-message">The tunnel <strong>${tunnelName}</strong> is online but couldn't connect to the origin server.</p>
-        <div class="error-detail">${errorMessage}</div>
-        <button class="retry-btn" onclick="location.reload()">Try Again</button>
-    </div>
-</body>
-</html>`;
+  return errorPageTemplate
+    .replace(/\{\{TUNNEL_NAME\}\}/g, tunnelName)
+    .replace(/\{\{HOST\}\}/g, host)
+    .replace(/\{\{ERROR_MESSAGE\}\}/g, errorMessage)
+    .replace(/\{\{TIMESTAMP\}\}/g, new Date().toISOString());
 }
 
 console.log('🚀 PiTunnel Server Starting...');
