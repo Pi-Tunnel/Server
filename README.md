@@ -16,13 +16,14 @@ PiTunnel server is a tunnel server that exposes services on your local network t
 One-line installer for Linux servers (Ubuntu, Debian, CentOS, etc.):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Pi-Tunnel/Server/refs/heads/main/setup.sh | sudo bash
+sudo bash <(curl -fsSL https://raw.githubusercontent.com/Pi-Tunnel/Server/refs/heads/main/setup.sh)
 ```
 
-Or with wget:
+Or download and run:
 
 ```bash
-wget -qO- https://raw.githubusercontent.com/Pi-Tunnel/Server/refs/heads/main/setup.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/Pi-Tunnel/Server/refs/heads/main/setup.sh -o setup.sh
+sudo bash setup.sh
 ```
 
 This will:

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # PiTunnel Server - One-Line Installer
-# Usage: curl -fsSL https://raw.githubusercontent.com/Pi-Tunnel/Server/refs/heads/main/setup.sh | sudo bash
-#    or: wget -qO- https://raw.githubusercontent.com/Pi-Tunnel/Server/refs/heads/main/setup.sh | sudo bash
+# Usage: bash <(curl -fsSL https://raw.githubusercontent.com/Pi-Tunnel/Server/refs/heads/main/setup.sh)
+#    or: curl -fsSL https://raw.githubusercontent.com/Pi-Tunnel/Server/refs/heads/main/setup.sh -o setup.sh && sudo bash setup.sh
 
 set -e
 
@@ -247,12 +247,12 @@ echo ""
 
 # Server IP
 if [ -n "$AUTO_IP" ]; then
-    echo -n "Server IP [$AUTO_IP]: "
-    read SERVER_IP < /dev/tty
+    printf "Server IP [$AUTO_IP]: "
+    read SERVER_IP
     SERVER_IP=${SERVER_IP:-$AUTO_IP}
 else
-    echo -n "Server IP: "
-    read SERVER_IP < /dev/tty
+    printf "Server IP: "
+    read SERVER_IP
 fi
 
 # Validate IP
@@ -266,8 +266,8 @@ echo ""
 echo -e "${YELLOW}Domain format: tunnel.yourdomain.com${NC}"
 echo -e "${YELLOW}Tunnels will be: *.tunnel.yourdomain.com${NC}"
 echo ""
-echo -n "Domain: "
-read DOMAIN < /dev/tty
+printf "Domain: "
+read DOMAIN
 
 if [ -z "$DOMAIN" ]; then
     log_error "Domain cannot be empty"
@@ -276,16 +276,16 @@ fi
 
 # Ports (with defaults)
 echo ""
-echo -n "HTTP Port [80]: "
-read HTTP_PORT < /dev/tty
+printf "HTTP Port [80]: "
+read HTTP_PORT
 HTTP_PORT=${HTTP_PORT:-80}
 
-echo -n "WebSocket Port [8081]: "
-read WS_PORT < /dev/tty
+printf "WebSocket Port [8081]: "
+read WS_PORT
 WS_PORT=${WS_PORT:-8081}
 
-echo -n "API Port [8082]: "
-read API_PORT < /dev/tty
+printf "API Port [8082]: "
+read API_PORT
 API_PORT=${API_PORT:-8082}
 
 # Generate Token
@@ -303,8 +303,8 @@ echo -e "  WebSocket Port: ${GREEN}$WS_PORT${NC}"
 echo -e "  API Port:       ${GREEN}$API_PORT${NC}"
 echo -e "  Install Dir:    ${GREEN}$INSTALL_DIR${NC}"
 echo ""
-echo -n "Continue with installation? [Y/n]: "
-read CONFIRM < /dev/tty
+printf "Continue with installation? [Y/n]: "
+read CONFIRM
 CONFIRM=${CONFIRM:-Y}
 
 if [[ "$CONFIRM" =~ ^[Nn]$ ]]; then
