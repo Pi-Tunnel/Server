@@ -1174,7 +1174,7 @@ function uninstallMac() {
 
 // Linux Install (systemd)
 function installLinux(nodePath, scriptPath, workingDir) {
-  const servicePath = '/etc/systemd/system/pitunnel-server.service';
+  const servicePath = '/etc/systemd/system/pitunnel.service';
   const logPath = join(workingDir, 'server.log');
 
   const serviceContent = `[Unit]
@@ -1204,26 +1204,29 @@ WantedBy=multi-user.target
     execSync('systemctl daemon-reload', { stdio: 'pipe' });
 
     // Enable and start service
-    execSync('systemctl enable pitunnel-server.service', { stdio: 'pipe' });
-    execSync('systemctl start pitunnel-server.service', { stdio: 'pipe' });
+    execSync('systemctl enable pitunnel.service', { stdio: 'pipe' });
+    execSync('systemctl start pitunnel.service', { stdio: 'pipe' });
 
     console.log('✅ PiTunnel Server installed successfully!');
     console.log('   Service is now running and will start automatically on boot.');
     console.log(`   Log file: ${logPath}`);
-    console.log('   Status: systemctl status pitunnel-server');
-    console.log('   To remove: sudo node index.js uninstall');
+    console.log('   Status: ptserver status');
+    console.log('   To remove: sudo ptserver uninstall');
   } catch (e) {
     console.log(`❌ Installation failed: ${e.message}`);
-    console.log('   Try running with sudo: sudo node index.js install');
+    console.log('   Try running with sudo: sudo ptserver install');
   }
 }
 
 function uninstallLinux() {
-  const servicePath = '/etc/systemd/system/pitunnel-server.service';
+  const serviceName = findLinuxService();
+  const servicePath = serviceName
+    ? `/etc/systemd/system/${serviceName}.service`
+    : '/etc/systemd/system/pitunnel.service';
 
   try {
-    execSync('systemctl stop pitunnel-server.service 2>/dev/null', { stdio: 'pipe' });
-    execSync('systemctl disable pitunnel-server.service 2>/dev/null', { stdio: 'pipe' });
+    execSync(`systemctl stop ${serviceName || 'pitunnel'}.service 2>/dev/null`, { stdio: 'pipe' });
+    execSync(`systemctl disable ${serviceName || 'pitunnel'}.service 2>/dev/null`, { stdio: 'pipe' });
   } catch (e) {}
 
   try {
@@ -1236,7 +1239,7 @@ function uninstallLinux() {
     }
   } catch (e) {
     console.log(`❌ Uninstall failed: ${e.message}`);
-    console.log('   Try running with sudo: sudo node index.js uninstall');
+    console.log('   Try running with sudo: sudo ptserver uninstall');
   }
 }
 
@@ -1370,19 +1373,42 @@ function statusMac() {
 }
 
 // Linux Start/Stop/Status
+function findLinuxService() {
+  const serviceNames = ['pitunnel', 'pitunnel-server'];
+  for (const serviceName of serviceNames) {
+    if (existsSync(`/etc/systemd/system/${serviceName}.service`)) {
+      return serviceName;
+    }
+  }
+  return null;
+}
+
 function startLinux() {
+  const serviceName = findLinuxService();
+  if (!serviceName) {
+    console.log('❌ PiTunnel Server is not installed');
+    console.log('   Install with: sudo ptserver install');
+    return;
+  }
+
   try {
-    execSync('systemctl start pitunnel-server.service', { stdio: 'pipe' });
+    execSync(`systemctl start ${serviceName}.service`, { stdio: 'pipe' });
     console.log('✅ PiTunnel Server started');
   } catch (e) {
     console.log('❌ Failed to start PiTunnel Server');
-    console.log('   Make sure the service is installed: sudo ptserver install');
+    console.log('   Check logs: journalctl -u ' + serviceName + ' -f');
   }
 }
 
 function stopLinux() {
+  const serviceName = findLinuxService();
+  if (!serviceName) {
+    console.log('⚠️  PiTunnel Server is not installed');
+    return;
+  }
+
   try {
-    execSync('systemctl stop pitunnel-server.service', { stdio: 'pipe' });
+    execSync(`systemctl stop ${serviceName}.service`, { stdio: 'pipe' });
     console.log('✅ PiTunnel Server stopped');
   } catch (e) {
     console.log('⚠️  PiTunnel Server may not be running');
@@ -1390,29 +1416,53 @@ function stopLinux() {
 }
 
 function statusLinux() {
-  try {
-    const result = execSync('systemctl is-active pitunnel-server.service', { encoding: 'utf8' }).trim();
-    const isRunning = result === 'active';
+  // Try both service names (pitunnel for setup.sh install, pitunnel-server for npm install)
+  const serviceNames = ['pitunnel', 'pitunnel-server'];
+  let foundService = null;
+  let isRunning = false;
 
+  for (const serviceName of serviceNames) {
+    try {
+      const result = execSync(`systemctl is-active ${serviceName}.service 2>/dev/null`, { encoding: 'utf8' }).trim();
+      if (result === 'active' || result === 'inactive') {
+        foundService = serviceName;
+        isRunning = result === 'active';
+        break;
+      }
+    } catch (e) {
+      // Try next service name
+    }
+  }
+
+  if (!foundService) {
+    // Check if service file exists
+    for (const serviceName of serviceNames) {
+      if (existsSync(`/etc/systemd/system/${serviceName}.service`)) {
+        foundService = serviceName;
+        break;
+      }
+    }
+  }
+
+  if (foundService) {
     let pid = '';
     if (isRunning) {
       try {
-        const pidResult = execSync('systemctl show pitunnel-server.service --property=MainPID --value', { encoding: 'utf8' }).trim();
+        const pidResult = execSync(`systemctl show ${foundService}.service --property=MainPID --value`, { encoding: 'utf8' }).trim();
         pid = pidResult;
       } catch (e) {}
     }
 
-    console.log(`Service:  pitunnel-server.service`);
+    console.log(`Service:  ${foundService}.service`);
     console.log(`Status:   ${isRunning ? `🟢 Running${pid ? ` (PID: ${pid})` : ''}` : '🔴 Stopped'}`);
     console.log(`Platform: Linux (systemd)`);
 
     // Show more details
     try {
-      const enabled = execSync('systemctl is-enabled pitunnel-server.service 2>/dev/null', { encoding: 'utf8' }).trim();
+      const enabled = execSync(`systemctl is-enabled ${foundService}.service 2>/dev/null`, { encoding: 'utf8' }).trim();
       console.log(`Enabled:  ${enabled === 'enabled' ? '✅ Yes' : '❌ No'}`);
     } catch (e) {}
-
-  } catch (e) {
+  } else {
     console.log('Status:   ⚠️  Not installed');
     console.log('Install:  sudo ptserver install');
   }
