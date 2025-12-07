@@ -57,10 +57,48 @@ Create a `config.json` file:
 | `apiPort` | 8082 | Port for API endpoints |
 | `authToken` | null | Client authentication token |
 
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `ptserver` | Start server in foreground |
+| `ptserver start` | Start server as service |
+| `ptserver stop` | Stop server service |
+| `ptserver status` | Show service status |
+| `ptserver install` | Install as system service |
+| `ptserver uninstall` | Remove system service |
+
 ## Running
 
 ```bash
+# Run in foreground
 ptserver
+
+# Or start as background service
+ptserver start
+```
+
+### Service Management
+
+```bash
+# Start service
+sudo ptserver start
+
+# Stop service
+sudo ptserver stop
+
+# Check status
+ptserver status
+```
+
+Example status output:
+```
+📊 PiTunnel Server Status
+────────────────────────────────────────
+Service:  pitunnel-server.service
+Status:   🟢 Running (PID: 12345)
+Platform: Linux (systemd)
+Enabled:  ✅ Yes
 ```
 
 ### Install as System Service

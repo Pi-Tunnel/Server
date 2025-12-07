@@ -19,7 +19,7 @@ const isWindows = platform() === 'win32';
 const isMac = platform() === 'darwin';
 const isLinux = platform() === 'linux';
 
-// Check for install/uninstall commands
+// Check for commands
 const command = process.argv[2];
 if (command === 'install') {
   installService();
@@ -27,6 +27,18 @@ if (command === 'install') {
 }
 if (command === 'uninstall') {
   uninstallService();
+  process.exit(0);
+}
+if (command === 'start') {
+  startService();
+  process.exit(0);
+}
+if (command === 'stop') {
+  stopService();
+  process.exit(0);
+}
+if (command === 'status') {
+  showStatus();
   process.exit(0);
 }
 
@@ -1225,5 +1237,183 @@ function uninstallLinux() {
   } catch (e) {
     console.log(`❌ Uninstall failed: ${e.message}`);
     console.log('   Try running with sudo: sudo node index.js uninstall');
+  }
+}
+
+// ==================== Start/Stop/Status Service ====================
+function startService() {
+  console.log('');
+  console.log('🚀 Starting PiTunnel Server...');
+
+  if (isWindows) {
+    startWindows();
+  } else if (isMac) {
+    startMac();
+  } else if (isLinux) {
+    startLinux();
+  } else {
+    console.log('❌ Unsupported platform');
+  }
+}
+
+function stopService() {
+  console.log('');
+  console.log('🛑 Stopping PiTunnel Server...');
+
+  if (isWindows) {
+    stopWindows();
+  } else if (isMac) {
+    stopMac();
+  } else if (isLinux) {
+    stopLinux();
+  } else {
+    console.log('❌ Unsupported platform');
+  }
+}
+
+function showStatus() {
+  console.log('');
+  console.log('📊 PiTunnel Server Status');
+  console.log('─'.repeat(40));
+
+  if (isWindows) {
+    statusWindows();
+  } else if (isMac) {
+    statusMac();
+  } else if (isLinux) {
+    statusLinux();
+  } else {
+    console.log('❌ Unsupported platform');
+  }
+}
+
+// Windows Start/Stop/Status
+function startWindows() {
+  const taskName = 'PiTunnelServer';
+  try {
+    execSync(`schtasks /run /tn "${taskName}"`, { stdio: 'pipe' });
+    console.log('✅ PiTunnel Server started');
+  } catch (e) {
+    console.log('❌ Failed to start PiTunnel Server');
+    console.log('   Make sure the service is installed: ptserver install');
+  }
+}
+
+function stopWindows() {
+  const taskName = 'PiTunnelServer';
+  try {
+    execSync(`taskkill /f /im node.exe /fi "WINDOWTITLE eq PiTunnel*" 2>nul`, { stdio: 'pipe' });
+    console.log('✅ PiTunnel Server stopped');
+  } catch (e) {
+    // Try alternative method
+    try {
+      execSync(`schtasks /end /tn "${taskName}"`, { stdio: 'pipe' });
+      console.log('✅ PiTunnel Server stopped');
+    } catch (e2) {
+      console.log('⚠️  PiTunnel Server may not be running');
+    }
+  }
+}
+
+function statusWindows() {
+  const taskName = 'PiTunnelServer';
+  try {
+    const result = execSync(`schtasks /query /tn "${taskName}" /fo list`, { encoding: 'utf8' });
+    const statusMatch = result.match(/Status:\s+(\w+)/);
+    const status = statusMatch ? statusMatch[1] : 'Unknown';
+
+    console.log(`Service:  ${taskName}`);
+    console.log(`Status:   ${status === 'Running' ? '🟢 Running' : '🔴 Stopped'}`);
+    console.log(`Platform: Windows (Task Scheduler)`);
+  } catch (e) {
+    console.log('Status:   ⚠️  Not installed');
+    console.log('Install:  ptserver install');
+  }
+}
+
+// macOS Start/Stop/Status
+function startMac() {
+  const plistPath = '/Library/LaunchDaemons/com.pitunnel.server.plist';
+  try {
+    execSync(`launchctl load "${plistPath}" 2>/dev/null`, { stdio: 'pipe' });
+    execSync(`launchctl start com.pitunnel.server`, { stdio: 'pipe' });
+    console.log('✅ PiTunnel Server started');
+  } catch (e) {
+    console.log('❌ Failed to start PiTunnel Server');
+    console.log('   Make sure the service is installed: sudo ptserver install');
+  }
+}
+
+function stopMac() {
+  try {
+    execSync(`launchctl stop com.pitunnel.server`, { stdio: 'pipe' });
+    console.log('✅ PiTunnel Server stopped');
+  } catch (e) {
+    console.log('⚠️  PiTunnel Server may not be running');
+  }
+}
+
+function statusMac() {
+  try {
+    const result = execSync(`launchctl list | grep com.pitunnel.server`, { encoding: 'utf8' });
+    const parts = result.trim().split(/\s+/);
+    const pid = parts[0];
+    const isRunning = pid !== '-' && pid !== '';
+
+    console.log(`Service:  com.pitunnel.server`);
+    console.log(`Status:   ${isRunning ? `🟢 Running (PID: ${pid})` : '🔴 Stopped'}`);
+    console.log(`Platform: macOS (LaunchDaemon)`);
+  } catch (e) {
+    console.log('Status:   ⚠️  Not installed');
+    console.log('Install:  sudo ptserver install');
+  }
+}
+
+// Linux Start/Stop/Status
+function startLinux() {
+  try {
+    execSync('systemctl start pitunnel-server.service', { stdio: 'pipe' });
+    console.log('✅ PiTunnel Server started');
+  } catch (e) {
+    console.log('❌ Failed to start PiTunnel Server');
+    console.log('   Make sure the service is installed: sudo ptserver install');
+  }
+}
+
+function stopLinux() {
+  try {
+    execSync('systemctl stop pitunnel-server.service', { stdio: 'pipe' });
+    console.log('✅ PiTunnel Server stopped');
+  } catch (e) {
+    console.log('⚠️  PiTunnel Server may not be running');
+  }
+}
+
+function statusLinux() {
+  try {
+    const result = execSync('systemctl is-active pitunnel-server.service', { encoding: 'utf8' }).trim();
+    const isRunning = result === 'active';
+
+    let pid = '';
+    if (isRunning) {
+      try {
+        const pidResult = execSync('systemctl show pitunnel-server.service --property=MainPID --value', { encoding: 'utf8' }).trim();
+        pid = pidResult;
+      } catch (e) {}
+    }
+
+    console.log(`Service:  pitunnel-server.service`);
+    console.log(`Status:   ${isRunning ? `🟢 Running${pid ? ` (PID: ${pid})` : ''}` : '🔴 Stopped'}`);
+    console.log(`Platform: Linux (systemd)`);
+
+    // Show more details
+    try {
+      const enabled = execSync('systemctl is-enabled pitunnel-server.service 2>/dev/null', { encoding: 'utf8' }).trim();
+      console.log(`Enabled:  ${enabled === 'enabled' ? '✅ Yes' : '❌ No'}`);
+    } catch (e) {}
+
+  } catch (e) {
+    console.log('Status:   ⚠️  Not installed');
+    console.log('Install:  sudo ptserver install');
   }
 }
