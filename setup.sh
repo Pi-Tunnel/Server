@@ -1,15 +1,15 @@
 #!/bin/bash
 
 # PiTunnel Server - One-Line Installer
-# Usage: curl -fsSL https://raw.githubusercontent.com/Pi-Tunnel/Server/main/setup.sh | sudo bash
-#    or: wget -qO- https://raw.githubusercontent.com/Pi-Tunnel/Server/main/setup.sh | sudo bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/Pi-Tunnel/Server/refs/heads/main/setup.sh | sudo bash
+#    or: wget -qO- https://raw.githubusercontent.com/Pi-Tunnel/Server/refs/heads/main/setup.sh | sudo bash
 
 set -e
 
 # Version
 VERSION="1.0.0"
 REPO_URL="https://github.com/Pi-Tunnel/Server"
-RAW_URL="https://raw.githubusercontent.com/Pi-Tunnel/Server/main"
+RAW_URL="https://raw.githubusercontent.com/Pi-Tunnel/Server/refs/heads/main"
 
 # Colors
 RED='\033[0;31m'
