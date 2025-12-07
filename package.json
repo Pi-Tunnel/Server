@@ -1,0 +1,41 @@
+{
+  "name": "ptserver",
+  "version": "1.0.0",
+  "description": "PiTunnel Server - Self-hosted tunnel server to expose local services to the internet",
+  "main": "index.js",
+  "type": "module",
+  "bin": {
+    "ptserver": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": [
+    "tunnel",
+    "reverse-proxy",
+    "ngrok",
+    "cloudflare-tunnel",
+    "websocket",
+    "http-tunnel",
+    "tcp-tunnel",
+    "port-forwarding",
+    "self-hosted"
+  ],
+  "author": "Pi-Tunnel",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Pi-Tunnel/Server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Pi-Tunnel/Server/issues"
+  },
+  "homepage": "https://github.com/Pi-Tunnel/Server#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "ws": "^8.14.2"
+  }
+}

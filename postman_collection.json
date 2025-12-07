@@ -1,0 +1,474 @@
+{
+	"info": {
+		"_postman_id": "pitunnel-api-collection",
+		"name": "PiTunnel API",
+		"description": "PiTunnel Server API Collection\n\nThis collection contains all API endpoints for managing PiTunnel tunnels.\n\n## Authentication\nAll endpoints (except /health) require authentication via X-Auth-Token header.\n\n## Setup\n1. Set the `pt_base_url` variable to your server address (e.g., http://localhost:8082)\n2. Set the `pt_auth_token` variable to your authentication token",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "pt_base_url",
+			"value": "http://localhost:8082",
+			"type": "string"
+		},
+		{
+			"key": "pt_auth_token",
+			"value": "your-auth-token-here",
+			"type": "string"
+		},
+		{
+			"key": "pt_tunnel_name",
+			"value": "my-tunnel",
+			"type": "string"
+		}
+	],
+	"auth": {
+		"type": "apikey",
+		"apikey": [
+			{
+				"key": "key",
+				"value": "X-Auth-Token",
+				"type": "string"
+			},
+			{
+				"key": "value",
+				"value": "{{pt_auth_token}}",
+				"type": "string"
+			},
+			{
+				"key": "in",
+				"value": "header",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{pt_base_url}}/health",
+							"host": [
+								"{{pt_base_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Check server health status.\n\n**No authentication required.**\n\nReturns:\n- Server status\n- Uptime\n- Active tunnel count\n- Memory usage\n- Domain configuration"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{pt_base_url}}/health",
+									"host": [
+										"{{pt_base_url}}"
+									],
+									"path": [
+										"health"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"status\": \"ok\",\n    \"uptime\": 3600,\n    \"tunnels\": 5,\n    \"memory\": {\n        \"rss\": 50331648,\n        \"heapTotal\": 18219008,\n        \"heapUsed\": 15728640,\n        \"external\": 1048576\n    },\n    \"domain\": \"tunnel.example.com\"\n}"
+						}
+					]
+				}
+			],
+			"description": "Server health and status endpoints"
+		},
+		{
+			"name": "Tunnels",
+			"item": [
+				{
+					"name": "List All Tunnels",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{pt_base_url}}/tunnels",
+							"host": [
+								"{{pt_base_url}}"
+							],
+							"path": [
+								"tunnels"
+							]
+						},
+						"description": "Get a list of all active tunnels.\n\nReturns:\n- Array of tunnel objects\n- Total count"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{pt_base_url}}/tunnels",
+									"host": [
+										"{{pt_base_url}}"
+									],
+									"path": [
+										"tunnels"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"tunnels\": [\n        {\n            \"name\": \"my-tunnel\",\n            \"target\": \"127.0.0.1:3000\",\n            \"tunnelType\": \"web\",\n            \"protocol\": \"http\",\n            \"ports\": [],\n            \"connectedAt\": \"2025-01-01T00:00:00.000Z\",\n            \"uptime\": 3600000,\n            \"stats\": {\n                \"requests\": 150,\n                \"bytesIn\": 45000,\n                \"bytesOut\": 1250000\n            },\n            \"clientInfo\": {\n                \"ip\": \"192.168.1.100\",\n                \"hostname\": \"my-computer\",\n                \"platform\": \"darwin\",\n                \"arch\": \"arm64\",\n                \"nodeVersion\": \"v20.10.0\",\n                \"osVersion\": \"24.1.0\",\n                \"username\": \"john\"\n            },\n            \"accessUrl\": \"http://my-tunnel.tunnel.example.com\"\n        }\n    ],\n    \"count\": 1\n}"
+						},
+						{
+							"name": "Unauthorized",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{pt_base_url}}/tunnels",
+									"host": [
+										"{{pt_base_url}}"
+									],
+									"path": [
+										"tunnels"
+									]
+								}
+							},
+							"status": "Unauthorized",
+							"code": 401,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"error\": \"Unauthorized\",\n    \"message\": \"Valid token required\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Tunnel Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{pt_base_url}}/tunnels/{{pt_tunnel_name}}",
+							"host": [
+								"{{pt_base_url}}"
+							],
+							"path": [
+								"tunnels",
+								"{{pt_tunnel_name}}"
+							]
+						},
+						"description": "Get detailed information about a specific tunnel.\n\nPath Parameters:\n- `name`: Tunnel name"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{pt_base_url}}/tunnels/{{pt_tunnel_name}}",
+									"host": [
+										"{{pt_base_url}}"
+									],
+									"path": [
+										"tunnels",
+										"{{pt_tunnel_name}}"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"name\": \"my-tunnel\",\n    \"target\": \"127.0.0.1:3000\",\n    \"tunnelType\": \"web\",\n    \"protocol\": \"http\",\n    \"connectedAt\": \"2025-01-01T00:00:00.000Z\",\n    \"uptime\": 3600000,\n    \"stats\": {\n        \"requests\": 150,\n        \"bytesIn\": 45000,\n        \"bytesOut\": 1250000\n    },\n    \"clientInfo\": {\n        \"ip\": \"192.168.1.100\",\n        \"hostname\": \"my-computer\",\n        \"platform\": \"darwin\",\n        \"arch\": \"arm64\",\n        \"nodeVersion\": \"v20.10.0\",\n        \"osVersion\": \"24.1.0\",\n        \"username\": \"john\"\n    },\n    \"accessUrl\": \"http://my-tunnel.tunnel.example.com\"\n}"
+						},
+						{
+							"name": "Not Found",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{pt_base_url}}/tunnels/nonexistent",
+									"host": [
+										"{{pt_base_url}}"
+									],
+									"path": [
+										"tunnels",
+										"nonexistent"
+									]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"error\": \"Tunnel not found\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Stop Tunnel",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{pt_base_url}}/tunnels/{{pt_tunnel_name}}",
+							"host": [
+								"{{pt_base_url}}"
+							],
+							"path": [
+								"tunnels",
+								"{{pt_tunnel_name}}"
+							]
+						},
+						"description": "Stop a tunnel and disconnect the client.\n\nPath Parameters:\n- `name`: Tunnel name\n\nThis will:\n1. Send a stop command to the client\n2. Close the WebSocket connection\n3. Remove the tunnel from active list"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{pt_base_url}}/tunnels/{{pt_tunnel_name}}",
+									"host": [
+										"{{pt_base_url}}"
+									],
+									"path": [
+										"tunnels",
+										"{{pt_tunnel_name}}"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"success\": true,\n    \"message\": \"Tunnel my-tunnel stopped\"\n}"
+						},
+						{
+							"name": "Not Found",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{pt_base_url}}/tunnels/nonexistent",
+									"host": [
+										"{{pt_base_url}}"
+									],
+									"path": [
+										"tunnels",
+										"nonexistent"
+									]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"error\": \"Tunnel not found\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Restart Tunnel",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{pt_base_url}}/tunnels/{{pt_tunnel_name}}/restart",
+							"host": [
+								"{{pt_base_url}}"
+							],
+							"path": [
+								"tunnels",
+								"{{pt_tunnel_name}}",
+								"restart"
+							]
+						},
+						"description": "Send a restart command to a tunnel.\n\nPath Parameters:\n- `name`: Tunnel name\n\nThe client will receive the restart command and reconnect."
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{pt_base_url}}/tunnels/{{pt_tunnel_name}}/restart",
+									"host": [
+										"{{pt_base_url}}"
+									],
+									"path": [
+										"tunnels",
+										"{{pt_tunnel_name}}",
+										"restart"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"success\": true,\n    \"message\": \"Restart command sent to my-tunnel\"\n}"
+						},
+						{
+							"name": "Not Found",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{pt_base_url}}/tunnels/nonexistent/restart",
+									"host": [
+										"{{pt_base_url}}"
+									],
+									"path": [
+										"tunnels",
+										"nonexistent",
+										"restart"
+									]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"error\": \"Tunnel not found\"\n}"
+						}
+					]
+				}
+			],
+			"description": "Tunnel management endpoints"
+		},
+		{
+			"name": "Statistics",
+			"item": [
+				{
+					"name": "Get Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{pt_base_url}}/stats",
+							"host": [
+								"{{pt_base_url}}"
+							],
+							"path": [
+								"stats"
+							]
+						},
+						"description": "Get overall server statistics.\n\nReturns:\n- Total active tunnels\n- Total requests processed\n- Total bytes transferred (in/out)\n- Server uptime"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{pt_base_url}}/stats",
+									"host": [
+										"{{pt_base_url}}"
+									],
+									"path": [
+										"stats"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"tunnels\": 5,\n    \"totalRequests\": 1500,\n    \"totalBytesIn\": 450000,\n    \"totalBytesOut\": 12500000,\n    \"uptime\": 86400\n}"
+						}
+					]
+				}
+			],
+			"description": "Server statistics endpoints"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}
