@@ -1,11 +1,11 @@
 {
-  "name": "ptserver",
+  "name": "pi-tunnel-server",
   "version": "1.0.0",
   "description": "PiTunnel Server - Self-hosted tunnel server to expose local services to the internet",
   "main": "index.js",
   "type": "module",
   "bin": {
-    "ptserver": "./index.js"
+    "piserver": "./index.js"
   },
   "scripts": {
     "start": "node index.js",
