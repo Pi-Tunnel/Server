@@ -713,10 +713,18 @@ cmd_status() {
 }
 
 cmd_logs() {
+    local LOG_FILE=\"/var/log/pitunnel/server.log\"
     echo \"\"
     echo -e \"  \${CYAN}→\${NC} Showing live logs (Ctrl+C to exit)...\"
     echo \"\"
-    journalctl -u \$SERVICE -f --no-hostname -o cat
+    if [ -f \"\$LOG_FILE\" ]; then
+        tail -f \"\$LOG_FILE\"
+    else
+        echo -e \"  \${YELLOW}⚠\${NC} Log file not found: \$LOG_FILE\"
+        echo -e \"  \${YELLOW}⚠\${NC} Trying journalctl...\"
+        echo \"\"
+        journalctl -u \$SERVICE -f --no-hostname -o cat
+    fi
 }
 
 cmd_config() {
