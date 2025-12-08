@@ -6,6 +6,7 @@ PiTunnel server is a tunnel server that exposes services on your local network t
 
 - **Web Tunnel**: HTTP/HTTPS traffic proxying
 - **TCP Tunnel**: SSH, RDP, MySQL, PostgreSQL and other protocols
+- **Custom Domain**: Support for custom domains (clients can use their own domains)
 - **WebSocket Support**: Full bidirectional WebSocket proxy (including HMR support)
 - **Dynamic Port**: Automatic port opening based on client's target port
 - **API**: RESTful API for tunnel management
@@ -163,6 +164,7 @@ Lists all active tunnels.
       "target": "127.0.0.1:3000",
       "tunnelType": "web",
       "protocol": "http",
+      "customDomain": null,
       "ports": [],
       "connectedAt": "2025-01-01T00:00:00.000Z",
       "uptime": 3600000,
@@ -177,6 +179,8 @@ Lists all active tunnels.
   "count": 1
 }
 ```
+
+> **Note:** If a tunnel has a custom domain configured, `customDomain` will contain the domain (e.g., `"myapp.example.com"`) and `accessUrl` will be `"http://myapp.example.com"`.
 
 ---
 
@@ -308,11 +312,33 @@ requests.delete(f'{API_URL}/tunnels/my-tunnel', headers=HEADERS)
 
 ## DNS Configuration
 
-Create a wildcard DNS record:
+### Wildcard Subdomain (Default)
+
+Create a wildcard DNS record for auto-generated subdomains:
 
 ```
 *.tunnel.example.com  A  YOUR_SERVER_IP
 ```
+
+### Custom Domain Support
+
+Clients can use their own custom domains. For this to work:
+
+1. Client points their domain to your server IP:
+   ```
+   myapp.example.com    A    YOUR_SERVER_IP
+   ```
+
+2. Client starts tunnel with custom domain option:
+   ```bash
+   piclient start
+   # Select "Custom domain" when prompted
+   # Enter: myapp.example.com
+   ```
+
+3. The server automatically routes requests from `myapp.example.com` to the correct tunnel.
+
+> **Note:** Custom domains work alongside wildcard subdomains. You don't need any additional server configuration.
 
 ## Firewall Configuration
 

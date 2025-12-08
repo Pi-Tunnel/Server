@@ -48,6 +48,9 @@ const stats = {
 // Active tunnels: { tunnelName: { ws, targetHost, tcpServers: Map<port, server> } }
 const tunnels = new Map();
 
+// Custom domain → Tunnel name mapping
+const customDomains = new Map();
+
 // Port → Tunnel mapping
 const portToTunnel = new Map();
 
@@ -144,8 +147,15 @@ mainServer.on('upgrade', (req, socket, head) => {
   }
 
   // WebSocket proxy through tunnel
-  let tunnelName = host.split('.')[0];
-  let tunnel = tunnels.get(tunnelName);
+  // Check for custom domain first
+  let tunnelName = customDomains.get(host);
+  let tunnel = tunnelName ? tunnels.get(tunnelName) : null;
+
+  // If not found via custom domain, try standard subdomain routing
+  if (!tunnel) {
+    tunnelName = host.split('.')[0];
+    tunnel = tunnels.get(tunnelName);
+  }
 
   // If tunnel not found and port is not 80, search for tunnel with that port
   if (!tunnel && requestPort !== 80) {
@@ -244,6 +254,7 @@ wss.on('connection', (ws, req) => {
           const targetHost = msg.target || 'localhost';
           const tunnelType = msg.tunnelType || 'web'; // web or tcp
           const protocol = msg.protocol || 'http'; // http, ssh, rdp, mysql, postgresql, ftp, sip
+          const customDomain = msg.customDomain || null;
 
           // Get client device info
           if (msg.deviceInfo) {
@@ -259,10 +270,24 @@ wss.on('connection', (ws, req) => {
             };
           }
 
+          // Check for duplicate tunnel name
           if (tunnels.has(tunnelName)) {
             ws.send(JSON.stringify({ type: 'error', message: 'Tunnel name already in use' }));
             ws.close();
             return;
+          }
+
+          // Check for duplicate custom domain
+          if (customDomain) {
+            for (const [, tunnel] of tunnels) {
+              if (tunnel.customDomain === customDomain) {
+                ws.send(JSON.stringify({ type: 'error', message: 'Custom domain already in use' }));
+                ws.close();
+                return;
+              }
+            }
+            // Also register custom domain in customDomains map for routing
+            customDomains.set(customDomain, tunnelName);
           }
 
           tunnels.set(tunnelName, {
@@ -271,6 +296,7 @@ wss.on('connection', (ws, req) => {
             targetPort: msg.targetPort || 80,
             tunnelType,
             protocol,
+            customDomain,
             tcpServers: new Map(),
             connectedAt: new Date(),
             clientInfo,
@@ -281,7 +307,7 @@ wss.on('connection', (ws, req) => {
             }
           });
 
-          console.log(`✅ Tunnel registered: ${tunnelName} (${tunnelType}/${protocol}) → ${targetHost}:${msg.targetPort || 80}`);
+          console.log(`✅ Tunnel registered: ${tunnelName} (${tunnelType}/${protocol}) → ${targetHost}:${msg.targetPort || 80}${customDomain ? ` [Custom: ${customDomain}]` : ''}`);
 
           // Start dynamic port server for web tunnels (for HMR support)
           const targetPort = msg.targetPort || 80;
@@ -291,7 +317,9 @@ wss.on('connection', (ws, req) => {
 
           // Prepare access URLs
           let accessUrl = '';
-          if (tunnelType === 'web') {
+          if (customDomain) {
+            accessUrl = `http://${customDomain}`;
+          } else if (tunnelType === 'web') {
             accessUrl = `http://${tunnelName}.${CONFIG.DOMAIN}`;
           } else {
             accessUrl = `${tunnelName}.tcp.${CONFIG.DOMAIN}`;
@@ -302,6 +330,7 @@ wss.on('connection', (ws, req) => {
             name: tunnelName,
             tunnelType,
             protocol,
+            customDomain,
             accessUrl,
             message: `Tunnel ${tunnelName} active.`
           }));
@@ -333,13 +362,18 @@ wss.on('connection', (ws, req) => {
       const tunnel = tunnels.get(tunnelName);
       const closedPort = tunnel.targetPort;
 
+      // Clean up custom domain mapping
+      if (tunnel.customDomain) {
+        customDomains.delete(tunnel.customDomain);
+      }
+
       tunnel.tcpServers.forEach((server, port) => {
         server.close();
         portToTunnel.delete(port);
       });
 
       tunnels.delete(tunnelName);
-      console.log(`❌ Tunnel disconnected: ${tunnelName}`);
+      console.log(`❌ Tunnel disconnected: ${tunnelName}${tunnel.customDomain ? ` [Custom: ${tunnel.customDomain}]` : ''}`);
 
       // Close dynamic server if no other tunnel uses this port
       let portStillUsed = false;
@@ -383,15 +417,25 @@ function handleTunnelRequest(req, res, host) {
     requestPort = parseInt(parts[1]) || 80;
   }
 
-  // test1.tunnel.domain.com or test1.tcp.tunnel.domain.com
-  let tunnelName = host.split('.')[0];
+  // Debug log
+  console.log(`🔍 Request: host=${host}, customDomains=${JSON.stringify([...customDomains.entries()])}`);
 
-  // tcp subdomain check: test1.tcp.tunnel... → test1
-  if (host.includes('.tcp.')) {
+  // Check for custom domain first
+  let tunnelName = customDomains.get(host);
+  let tunnel = tunnelName ? tunnels.get(tunnelName) : null;
+
+  // If not found via custom domain, try standard subdomain routing
+  if (!tunnel) {
+    // test1.tunnel.domain.com or test1.tcp.tunnel.domain.com
     tunnelName = host.split('.')[0];
-  }
 
-  let tunnel = tunnels.get(tunnelName);
+    // tcp subdomain check: test1.tcp.tunnel... → test1
+    if (host.includes('.tcp.')) {
+      tunnelName = host.split('.')[0];
+    }
+
+    tunnel = tunnels.get(tunnelName);
+  }
 
   // If tunnel not found and port is not 80, search for tunnel with that port
   if (!tunnel && requestPort !== 80) {
@@ -486,19 +530,26 @@ function handleApiRequest(req, res) {
   if ((url === '/tunnels' || url === '/tunnels/') && req.method === 'GET') {
     const list = [];
     tunnels.forEach((tunnel, name) => {
+      let accessUrl;
+      if (tunnel.customDomain) {
+        accessUrl = `http://${tunnel.customDomain}`;
+      } else if (tunnel.tunnelType === 'web') {
+        accessUrl = `http://${name}.${CONFIG.DOMAIN}`;
+      } else {
+        accessUrl = `${name}.tcp.${CONFIG.DOMAIN}`;
+      }
       list.push({
         name,
         target: `${tunnel.targetHost}:${tunnel.targetPort}`,
         tunnelType: tunnel.tunnelType,
         protocol: tunnel.protocol,
+        customDomain: tunnel.customDomain || null,
         ports: Array.from(tunnel.tcpServers.keys()),
         connectedAt: tunnel.connectedAt,
         uptime: Date.now() - new Date(tunnel.connectedAt).getTime(),
         stats: tunnel.stats,
         clientInfo: tunnel.clientInfo || {},
-        accessUrl: tunnel.tunnelType === 'web'
-          ? `http://${name}.${CONFIG.DOMAIN}`
-          : `${name}.tcp.${CONFIG.DOMAIN}`,
+        accessUrl,
       });
     });
     res.end(JSON.stringify({ tunnels: list, count: list.length }));
@@ -522,18 +573,25 @@ function handleApiRequest(req, res) {
     const tunnelName = url.replace('/tunnels/', '').replace('/', '');
     const tunnel = tunnels.get(tunnelName);
     if (tunnel) {
+      let accessUrl;
+      if (tunnel.customDomain) {
+        accessUrl = `http://${tunnel.customDomain}`;
+      } else if (tunnel.tunnelType === 'web') {
+        accessUrl = `http://${tunnelName}.${CONFIG.DOMAIN}`;
+      } else {
+        accessUrl = `${tunnelName}.tcp.${CONFIG.DOMAIN}`;
+      }
       res.end(JSON.stringify({
         name: tunnelName,
         target: `${tunnel.targetHost}:${tunnel.targetPort}`,
         tunnelType: tunnel.tunnelType,
         protocol: tunnel.protocol,
+        customDomain: tunnel.customDomain || null,
         connectedAt: tunnel.connectedAt,
         uptime: Date.now() - new Date(tunnel.connectedAt).getTime(),
         stats: tunnel.stats,
         clientInfo: tunnel.clientInfo || {},
-        accessUrl: tunnel.tunnelType === 'web'
-          ? `http://${tunnelName}.${CONFIG.DOMAIN}`
-          : `${tunnelName}.tcp.${CONFIG.DOMAIN}`,
+        accessUrl,
       }));
     } else {
       res.writeHead(404);
