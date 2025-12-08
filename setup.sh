@@ -625,6 +625,7 @@ show_help() {
     echo -e \"    \${GREEN}restart\${NC}    Restart PiTunnel Server\"
     echo -e \"    \${GREEN}status\${NC}     Show server status\"
     echo -e \"    \${GREEN}logs\${NC}       View server logs (live)\"
+    echo -e \"    \${GREEN}update\${NC}     Update to latest version\"
     echo -e \"    \${GREEN}config\${NC}     Show configuration\"
     echo -e \"    \${GREEN}token\${NC}      Show auth token\"
     echo -e \"    \${GREEN}help\${NC}       Show this help message\"
@@ -757,12 +758,105 @@ cmd_token() {
     echo \"\"
 }
 
+cmd_update() {
+    local INSTALL_DIR=\"/opt/pitunnel\"
+    local PACKAGE_NAME=\"pi-tunnel-server\"
+
+    echo \"\"
+    echo -e \"\${CYAN}╔═══════════════════════════════════════╗\${NC}\"
+    echo -e \"\${CYAN}║\${NC}       \${BOLD}🔄 PiTunnel Update\${NC}              \${CYAN}║\${NC}\"
+    echo -e \"\${CYAN}╚═══════════════════════════════════════╝\${NC}\"
+    echo \"\"
+
+    # Mevcut versiyonu al
+    if [ -f \"\$INSTALL_DIR/server/package.json\" ]; then
+        local CURRENT_VERSION=\$(grep -o '\"version\": *\"[^\"]*\"' \"\$INSTALL_DIR/server/package.json\" | cut -d'\"' -f4)
+        echo -e \"  📦 Current version: \${WHITE}\$CURRENT_VERSION\${NC}\"
+    else
+        echo -e \"  \${RED}✗\${NC} Could not find current installation\"
+        echo \"\"
+        return 1
+    fi
+
+    echo -e \"  🔍 Checking for updates...\"
+    echo \"\"
+
+    # npm'den son versiyonu al
+    local LATEST_VERSION=\$(npm view \$PACKAGE_NAME version 2>/dev/null)
+
+    if [ -z \"\$LATEST_VERSION\" ]; then
+        echo -e \"  \${RED}✗\${NC} Failed to check for updates\"
+        echo \"\"
+        return 1
+    fi
+
+    echo -e \"  📦 Latest version: \${CYAN}\$LATEST_VERSION\${NC}\"
+    echo \"\"
+
+    if [ \"\$CURRENT_VERSION\" = \"\$LATEST_VERSION\" ]; then
+        echo -e \"  \${GREEN}✓\${NC} You are already on the latest version\"
+        echo \"\"
+        return 0
+    fi
+
+    echo -e \"  ⬆️  Updating: \$CURRENT_VERSION → \$LATEST_VERSION\"
+    echo \"\"
+
+    # Servisi durdur
+    echo -e \"  \${CYAN}→\${NC} Stopping server...\"
+    systemctl stop \$SERVICE 2>/dev/null
+
+    # npm ile güncelle
+    echo -e \"  \${CYAN}→\${NC} Downloading update...\"
+    cd \"\$INSTALL_DIR\"
+
+    # Eski dosyaları yedekle (config hariç)
+    if [ -d \"server\" ]; then
+        rm -rf server.bak 2>/dev/null
+        mv server server.bak
+    fi
+
+    # Yeni versiyonu indir
+    npm pack \$PACKAGE_NAME@latest --silent
+    tar -xzf *.tgz
+    rm -f *.tgz
+    mv package server
+
+    # Bağımlılıkları yükle
+    cd server
+    npm install --production --silent 2>/dev/null
+
+    # Config'i geri yükle (eğer varsa)
+    if [ -f \"/etc/pitunnel/config.json\" ]; then
+        cp /etc/pitunnel/config.json ./config.json 2>/dev/null
+    fi
+
+    # Eski yedeği temizle
+    rm -rf \"\$INSTALL_DIR/server.bak\" 2>/dev/null
+
+    # Servisi başlat
+    echo -e \"  \${CYAN}→\${NC} Starting server...\"
+    systemctl start \$SERVICE
+    sleep 1
+
+    if systemctl is-active --quiet \$SERVICE; then
+        echo \"\"
+        echo -e \"  \${GREEN}✓\${NC} Successfully updated to version \$LATEST_VERSION\"
+    else
+        echo \"\"
+        echo -e \"  \${RED}✗\${NC} Update completed but server failed to start\"
+        echo -e \"    Run \${CYAN}piserver logs\${NC} to see errors\"
+    fi
+    echo \"\"
+}
+
 case \"\$1\" in
     start)      cmd_start ;;
     stop)       cmd_stop ;;
     restart)    cmd_restart ;;
     status)     cmd_status ;;
     logs|log)   cmd_logs ;;
+    update)     cmd_update ;;
     config)     cmd_config ;;
     token)      cmd_token ;;
     help|--help|-h|\"\") show_help ;;

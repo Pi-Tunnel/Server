@@ -39,6 +39,7 @@ After installation, use the `piserver` command to manage the server:
 | `piserver restart` | Restart PiTunnel Server |
 | `piserver status` | Show server status |
 | `piserver logs` | View live logs |
+| `piserver update` | Update to latest version |
 | `piserver config` | Show configuration |
 | `piserver token` | Show auth token |
 | `piserver help` | Show help message |
